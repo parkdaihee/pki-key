@@ -15,7 +15,7 @@ export function generateClientKeyPair() {
 export function signText(privateKeyPem: string, text: string) {
   const privateKey = pki.privateKeyFromPem(
     privateKeyPem,
-  ) as forge.pki.rsa.PrivateKey
+  ) as unknown as forge.pki.rsa.PrivateKey
 
   const md = forge.md.sha256.create()
   md.update(text, 'utf8')
@@ -35,10 +35,11 @@ export function createDigitalEnvelope({
 }) {
   const senderPrivateKey = pki.privateKeyFromPem(
     senderPrivateKeyPem,
-  ) as forge.pki.rsa.PrivateKey
+  ) as unknown as forge.pki.rsa.PrivateKey
 
   const receiverCert = pki.certificateFromPem(receiverCertPem)
-  const receiverPublicKey = receiverCert.publicKey as forge.pki.rsa.PublicKey
+  const receiverPublicKey =
+    receiverCert.publicKey as unknown as forge.pki.rsa.PublicKey
 
   const senderCert = pki.certificateFromPem(senderCertPem)
 
@@ -60,14 +61,12 @@ export function createDigitalEnvelope({
   cipher.update(forge.util.createBuffer(payload, 'utf8'))
   cipher.finish()
 
-  const encryptedSessionKey = receiverPublicKey.encrypt(
-    sessionKey,
-    'RSA-OAEP',
-    {
-      md: forge.md.sha256.create(),
-      mgf1: { md: forge.md.sha256.create() },
-    },
-  )
+  const encryptedSessionKey = (
+    receiverPublicKey as forge.pki.rsa.PublicKey
+  ).encrypt(sessionKey, 'RSA-OAEP', {
+    md: forge.md.sha256.create(),
+    mgf1: { md: forge.md.sha256.create() },
+  })
 
   return {
     encryptedMessageHex: cipher.output.toHex(),
@@ -91,10 +90,11 @@ export function openDigitalEnvelope({
 }) {
   const receiverPrivateKey = pki.privateKeyFromPem(
     receiverPrivateKeyPem,
-  ) as forge.pki.rsa.PrivateKey
+  ) as unknown as forge.pki.rsa.PrivateKey
 
   const senderCert = pki.certificateFromPem(senderCertPem)
-  const senderPublicKey = senderCert.publicKey as forge.pki.rsa.PublicKey
+  const senderPublicKey =
+    senderCert.publicKey as unknown as forge.pki.rsa.PublicKey
 
   const sessionKey = receiverPrivateKey.decrypt(
     forge.util.hexToBytes(encryptedSessionKeyHex),
